@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include "tail_queue.h"
+#include <string.h>
+
+#define SIZE 100
+
+/*
+ * Node contains data and links to another nodes.
+ */
+struct Node {
+	time_t time;
+	unsigned u1:3;
+	unsigned u2:3;
+	unsigned c1:3;
+	unsigned c2:3;
+	/*
+	0 --- computer wins
+	1 --- tie
+	2 --- user wins		
+	*/
+	unsigned who_wins :2;
+	char user_name[SIZE];		
+
+        TAILQ_ENTRY(Node) entries;      /* List. */
+};
+
+int main() {
+	TAILQ_HEAD(tailhead, Node) head =
+        TAILQ_HEAD_INITIALIZER(head);
+	struct tailhead *headp;                 /* List head. */
+	TAILQ_INIT(&head);
+	struct Node *n1, *n2, *np;
+
+	srandom(time(0));
+	char user_name[SIZE] = "without_name";	
+
+	unsigned instruction;
+	do {
+		printf("\nВыберите действие:\n");
+		printf("1 --- Сыграть в кости\n");
+		printf("2 --- Изменить имя пользователя\n");
+		printf("3 --- Просмотреть результаты\n");
+		printf("4 --- Выйти\n\n");
+		scanf("%u", &instruction);
+		switch (instruction) {
+		case 1:
+			printf("\nНажмите Enter для подкида костей... ");
+			getchar();
+			getchar();
+			unsigned u1, u2, c1, c2;
+			u1 = rand() % 7;
+			u2 = rand() % 7;
+			c1 = rand() % 7;
+			c2 = rand() % 7;
+			printf("\nВаши кости: %u, %u", u1, u2);			
+			printf("\nКости компьютера: %u, %u", c1, c2);			
+			
+			n1 = malloc(sizeof(struct Node));
+
+			if ( u1 + u2 > c1 + c2 ) {
+				printf("\nВы выиграли");
+				n1->who_wins = 2;
+			} else if (u1 + u2 == c1 + c2) {
+				printf("\nНичья");
+				n1->who_wins = 1;
+			} else {
+				printf("\nКомпьютер выиграл");					
+				n1->who_wins = 0;		
+			}
+			printf("\n\n\n");
+
+			n1->u1 = u1;
+			n1->u2 = u2;
+			n1->c1 = c1;
+			n1->c2 = c2;
+			strcpy(n1->user_name, user_name);			
+			time(&n1->time);	  /*	Insert at the head. */
+     			TAILQ_INSERT_TAIL(&head, n1, entries);
+			break;
+		case 2:	
+			printf("Введите новое имя пользователя: ");
+			scanf("%s", user_name);
+		case 3:
+			TAILQ_FOREACH(np, &head, entries) {
+				struct tm *tm_inf;
+				tm_inf = localtime (&np->time);
+  				printf ("Время: %02d:%02d:%02d\t\
+Пользователь: %s\t\
+Кости компьютера: %d %d\t\
+Кости игрока: %d %d", tm_inf->tm_hour, tm_inf->tm_min, tm_inf->tm_sec, 
+				np->user_name, np->c1, np->c2, np->u1, np->u2);
+				if (np->who_wins == 2) {
+					printf("\tИгрок выиграл\n");
+				} else if (n1->who_wins == 1) {
+					printf("\tНичья\n");			
+				} else {
+					printf("\tКомпьютер выиграл\n");			
+				}			
+			}
+			printf("\n");
+	    			
+		}	
+	} while (instruction != 4);
+
+	n1 = TAILQ_FIRST(&head);                 /* Faster List Deletion. */
+    	while (n1 != NULL) {
+        	n2 = TAILQ_NEXT(n1, entries);
+             	free(n1);
+             	n1 = n2;
+     	}
+     	TAILQ_INIT(&head);
+}
